@@ -64,6 +64,7 @@ flutter:
   assets:
     - assets/best-fp16.tflite
     - assets/images/home_page_pic.jpeg
+    - assets/best_float32.tflite
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

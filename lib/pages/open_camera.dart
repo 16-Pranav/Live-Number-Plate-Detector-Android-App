@@ -69,10 +69,20 @@ class _OpenCameraState extends State<OpenCamera> {
   Future<void> _loadModel() async {
     try {
       _interpreter = await Interpreter.fromAsset('assets/best-fp16.tflite');
+
+      // Suppose the model expects [1, 640, 640, 3].
+      // You can get the shape dynamically:
+      final inputShape = _interpreter!.getInputTensor(0).shape;
+      // e.g. [1, 640, 640, 3]
+
+      // Optionally, you can resize if needed:
+      // _interpreter!.resizeInputTensor(0, [1, 640, 640, 3]);
+      // _interpreter!.allocateTensors();
+
       _interpreter!.allocateTensors();
-      print("Model loaded successfully!");
+      print("Model loaded and tensors allocated successfully!");
     } catch (e) {
-      _showErrorDialog('Failed to load model: $e');
+      _showErrorDialog('Failed to load or allocate model: $e');
     }
   }
 
@@ -102,42 +112,65 @@ class _OpenCameraState extends State<OpenCamera> {
     try {
       if (_interpreter == null) return "Model not initialized";
 
-      File imgFile = File(imagePath);
-      Uint8List imageBytes = await imgFile.readAsBytes();
-      img.Image? image = img.decodeImage(imageBytes);
+      // 1. Load and decode image
+      final bytes = await File(imagePath).readAsBytes();
+      final original = img.decodeImage(bytes);
+      if (original == null) return "Error decoding image";
 
-      if (image == null) return "Error decoding image";
-
+      // 2. Get model input shape
       final inputShape = _interpreter!.getInputTensor(0).shape;
-      int height = inputShape[1];
-      int width = inputShape[2];
+      // Example: [1, 640, 640, 3]
+      final batchSize = inputShape[0];
+      final modelHeight = inputShape[1];
+      final modelWidth  = inputShape[2];
+      final channels    = inputShape[3];
 
-      img.Image resizedImage = img.copyResize(image, width: width, height: height);
+      // 3. Resize the image to the model’s expected size
+      final resized = img.copyResize(
+        original,
+        width: modelWidth,
+        height: modelHeight,
+      );
 
-      Float32List inputBuffer = Float32List(height * width * 3);
-      int index = 0;
-      for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-          int pixel = resizedImage.getPixel(x, y);
-          inputBuffer[index++] = img.getRed(pixel) / 255.0;
-          inputBuffer[index++] = img.getGreen(pixel) / 255.0;
-          inputBuffer[index++] = img.getBlue(pixel) / 255.0;
-        }
-      }
+      // 4. Build a 4D List: [batchSize, height, width, channels]
+      final input = List.generate(
+        batchSize,
+            (_) => List.generate(
+          modelHeight,
+              (y) => List.generate(
+            modelWidth,
+                (x) {
+              final pixel = resized.getPixel(x, y);
+              return [
+                img.getRed(pixel)   / 255.0,
+                img.getGreen(pixel) / 255.0,
+                img.getBlue(pixel)  / 255.0
+              ];
+            },
+          ),
+        ),
+      );
 
+      // 5. Prepare output array
+      final output = List.generate(
+        1,  // or inputShape[0]
+            (_) => List.generate(25200, (_) => List.filled(6, 0.0)),
+      );
 
-      var output = List.generate(1, (_) => List.generate(25200, (_) => List.generate(6, (_) => 0.0)));
+      // 6. Run inference
+      _interpreter!.run(input, output);
 
-      _interpreter!.run(inputBuffer, output);
-
+      // 7. Process model output
       return _processModelOutput(output);
+
     } catch (e) {
       return "Error running model: $e";
     }
   }
 
+
   String _processModelOutput(List<List<List<double>>> output) {
-    const double confidenceThreshold = 0.5;
+    const double confidenceThreshold = 0.3;
     for (var i = 0; i < output[0].length; i++) {
       if (output[0][i][4] > confidenceThreshold) {
         return "Plate detected with confidence: ${output[0][i][4]}";
