@@ -16,7 +16,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    // Initialize animation controller for fade and scale effects
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
@@ -27,7 +26,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
     );
-    _animationController.forward(); // Start the animation
+    _animationController.forward();
   }
 
   @override
@@ -38,23 +37,21 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    // Get the screen size for responsiveness
     final screenSize = MediaQuery.of(context).size;
-    final isTablet = screenSize.width > 600; // Detect if the device is a tablet
+    final isTablet = screenSize.width > 600;
 
     return Scaffold(
-      // Ensure the body takes the full screen height
       body: SizedBox(
-        height: screenSize.height, // Set the height to the full screen height
-        width: screenSize.width,  // Set the width to the full screen width
+        height: screenSize.height,
+        width: screenSize.width,
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF1E3A8A), // Deep blue
-                Color(0xFF3B82F6), // Lighter blue
+                Color(0xFF1E3A8A),
+                Color(0xFF3B82F6),
               ],
             ),
           ),
@@ -62,18 +59,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: SingleChildScrollView(
               child: Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: screenSize.width * 0.05, // 5% of screen width
-                  vertical: screenSize.height * 0.02, // 2% of screen height
+                  horizontal: screenSize.width * 0.05,
+                  vertical: screenSize.height * 0.02,
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Custom AppBar-like header
                     _buildCustomAppBar(screenSize, isTablet),
-                    SizedBox(height: screenSize.height * 0.05), // Responsive spacing
-
-                    // Title with animation
+                    SizedBox(height: screenSize.height * 0.05),
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: Text(
@@ -81,7 +75,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         style: TextStyle(
                           fontSize: isTablet ? 40 : 32,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white, // White text for contrast
+                          color: Colors.white,
                           letterSpacing: 1.5,
                           shadows: [
                             Shadow(
@@ -94,9 +88,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    SizedBox(height: screenSize.height * 0.03), // Responsive spacing
-
-                    // Subtitle for additional context
+                    SizedBox(height: screenSize.height * 0.03),
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: Text(
@@ -104,15 +96,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         style: TextStyle(
                           fontSize: isTablet ? 20 : 16,
                           fontWeight: FontWeight.w400,
-                          color: Colors.white70, // Slightly muted white
+                          color: Colors.white70,
                           letterSpacing: 1.2,
                         ),
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    SizedBox(height: screenSize.height * 0.05), // Responsive spacing
-
-                    // Image with animation and creative styling
+                    SizedBox(height: screenSize.height * 0.05),
                     ScaleTransition(
                       scale: _scaleAnimation,
                       child: Container(
@@ -131,21 +121,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           borderRadius: BorderRadius.circular(20),
                           child: Image(
                             image: const AssetImage('assets/images/home_page_pic.jpeg'),
-                            width: screenSize.width * 0.85, // 85% of screen width
-                            height: screenSize.height * 0.35, // 35% of screen height
-                            fit: BoxFit.cover, // Ensure the image scales properly
+                            width: screenSize.width * 0.85,
+                            height: screenSize.height * 0.35,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
                     ),
-                    SizedBox(height: screenSize.height * 0.05), // Responsive spacing
-
-                    // Animated button with gradient and hover effect
+                    SizedBox(height: screenSize.height * 0.05),
                     ScaleTransition(
                       scale: _scaleAnimation,
                       child: _buildCustomButton(screenSize, isTablet),
                     ),
-                    // Add extra space at the bottom to ensure content is scrollable if needed
                     SizedBox(height: screenSize.height * 0.05),
                   ],
                 ),
@@ -157,7 +144,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // Custom AppBar-like header
   Widget _buildCustomAppBar(Size screenSize, bool isTablet) {
     return Container(
       padding: EdgeInsets.symmetric(
@@ -165,7 +151,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         horizontal: screenSize.width * 0.05,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1), // Semi-transparent white
+        color: Colors.white.withOpacity(0.1),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(20),
           bottomRight: Radius.circular(20),
@@ -187,13 +173,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             size: 30,
           ),
           SizedBox(width: screenSize.width * 0.02),
-          Text(
-            'Number Plate Detector',
-            style: TextStyle(
-              fontSize: isTablet ? 28 : 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.2,
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Number Plate Detector',
+                style: TextStyle(
+                  fontSize: isTablet ? 24 : screenSize.width < 400 ? 18 : 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
             ),
           ),
         ],
@@ -201,14 +192,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  // Custom button with gradient and hover effect
   Widget _buildCustomButton(Size screenSize, bool isTablet) {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            Color(0xFFFFA726), // Orange
-            Color(0xFFFF5722), // Deep Orange
+            Color(0xFFFFA726),
+            Color(0xFFFF5722),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -231,11 +221,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         },
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.symmetric(
-            horizontal: screenSize.width * 0.15, // 15% of screen width
-            vertical: screenSize.height * 0.025, // 2.5% of screen height
+            horizontal: screenSize.width * 0.15,
+            vertical: screenSize.height * 0.025,
           ),
-          backgroundColor: Colors.transparent, // Transparent to show gradient
-          shadowColor: Colors.transparent, // Avoid default shadow
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
@@ -245,7 +235,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           style: TextStyle(
             fontSize: isTablet ? 20 : 16,
             fontWeight: FontWeight.bold,
-            color: Colors.white, // White text for contrast
+            color: Colors.white,
             letterSpacing: 1.2,
           ),
         ),

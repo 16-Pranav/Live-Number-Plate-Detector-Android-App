@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 
 class TextExtractPage extends StatefulWidget {
   final String imagePath;
@@ -23,7 +24,6 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
   void initState() {
     super.initState();
     _performTextExtraction();
-    // Initialize animation controller for fade effect
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -79,6 +79,31 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
     }
   }
 
+  Future<String> _getCurrentLocation() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          return "Location permission denied";
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        return "Location permission permanently denied";
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      return "${position.latitude}, ${position.longitude}";
+    } catch (e) {
+      debugPrint("Error getting location: $e");
+      return "Error getting location: $e";
+    }
+  }
+
   Future<void> _sendDataToServer() async {
     final selectedPlates = _detectedPlates.where((item) => item['isSelected'] == true).toList();
     if (selectedPlates.isEmpty ||
@@ -94,9 +119,9 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
       _uploadResult = null;
     });
 
-    String location = "12.3456, 77.8901";
+    String location = await _getCurrentLocation();
     String dateCaptured = DateTime.now().toIso8601String();
-    Uri apiUrl = Uri.parse("http://192.168.29.241:4000/api/v1/numberplate/upload");
+    Uri apiUrl = Uri.parse("http://192.168.13.152:4000/api/v1/numberplate/upload");
 
     StringBuffer uploadResults = StringBuffer();
 
@@ -131,59 +156,65 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
   }
 
   Widget _buildPlateList(Size screenSize, bool isTablet) {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _detectedPlates.length,
-      itemBuilder: (context, index) {
-        final plateData = _detectedPlates[index];
-        return Card(
-          margin: EdgeInsets.symmetric(
-            vertical: screenSize.height * 0.01,
-            horizontal: screenSize.width * 0.02,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          elevation: 5,
-          color: Colors.white.withOpacity(0.9),
-          child: CheckboxListTile(
-            title: Text(
-              "Number Plate: ${plateData['plate']}",
-              style: TextStyle(
-                fontSize: isTablet ? 20 : 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+    return FutureBuilder<String>(
+      future: _getCurrentLocation(),
+      builder: (context, snapshot) {
+        String location = snapshot.data ?? "Fetching location...";
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _detectedPlates.length,
+          itemBuilder: (context, index) {
+            final plateData = _detectedPlates[index];
+            return Card(
+              margin: EdgeInsets.symmetric(
+                vertical: screenSize.height * 0.01,
+                horizontal: screenSize.width * 0.02,
               ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Location: 12.3456, 77.8901",
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              elevation: 5,
+              color: Colors.white.withOpacity(0.9),
+              child: CheckboxListTile(
+                title: Text(
+                  "Number Plate: ${plateData['plate']}",
                   style: TextStyle(
-                    fontSize: isTablet ? 16 : 14,
-                    color: Colors.black54,
+                    fontSize: isTablet ? 20 : 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
-                Text(
-                  "Date: ${DateTime.now().toLocal().toString().split('.')[0]}",
-                  style: TextStyle(
-                    fontSize: isTablet ? 16 : 14,
-                    color: Colors.black54,
-                  ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Location: $location",
+                      style: TextStyle(
+                        fontSize: isTablet ? 16 : 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    Text(
+                      "Date: ${DateTime.now().toLocal().toString().split('.')[0]}",
+                      style: TextStyle(
+                        fontSize: isTablet ? 16 : 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            value: plateData['isSelected'],
-            onChanged: (bool? value) {
-              setState(() {
-                _detectedPlates[index]['isSelected'] = value;
-              });
-            },
-            activeColor: Colors.orangeAccent,
-            checkColor: Colors.white,
-          ),
+                value: plateData['isSelected'],
+                onChanged: (bool? value) {
+                  setState(() {
+                    _detectedPlates[index]['isSelected'] = value;
+                  });
+                },
+                activeColor: Colors.orangeAccent,
+                checkColor: Colors.white,
+              ),
+            );
+          },
         );
       },
     );
@@ -221,7 +252,6 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Custom AppBar-like header
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: screenSize.width * 0.05,
@@ -230,8 +260,6 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
                       child: _buildCustomAppBar(screenSize, isTablet),
                     ),
                     SizedBox(height: screenSize.height * 0.03),
-
-                    // Image
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: Container(
@@ -266,15 +294,11 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
                       ),
                     ),
                     SizedBox(height: screenSize.height * 0.03),
-
-                    // Detected Plates List
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: _buildPlateList(screenSize, isTablet),
                     ),
                     SizedBox(height: screenSize.height * 0.03),
-
-                    // Upload Result
                     if (_uploadResult != null)
                       Padding(
                         padding: EdgeInsets.all(screenSize.width * 0.02),
@@ -289,8 +313,6 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
                           textAlign: TextAlign.center,
                         ),
                       ),
-
-                    // Upload Button
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: screenSize.width * 0.05,
@@ -313,7 +335,6 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
     );
   }
 
-  // Custom AppBar-like header
   Widget _buildCustomAppBar(Size screenSize, bool isTablet) {
     return Container(
       padding: EdgeInsets.symmetric(
@@ -343,13 +364,18 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
             size: 30,
           ),
           SizedBox(width: screenSize.width * 0.02),
-          Text(
-            'Extracted Number Plates',
-            style: TextStyle(
-              fontSize: isTablet ? 28 : 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.2,
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Extracted Number Plates',
+                style: TextStyle(
+                  fontSize: isTablet ? 24 : screenSize.width < 400 ? 18 : 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
             ),
           ),
         ],
@@ -357,7 +383,6 @@ class _TextExtractPageState extends State<TextExtractPage> with SingleTickerProv
     );
   }
 
-  // Custom button with gradient
   Widget _buildCustomButton(Size screenSize, bool isTablet) {
     return Container(
       decoration: BoxDecoration(
